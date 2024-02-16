@@ -4,7 +4,11 @@ title: "rater number estimation"
 
 # AIM:
 
-The aim of this notebook is to estimate the number of ratings necessary per item. The threshold is estimated using cronbach's alpha. 
+The aim of this notebook is to estimate the number of ratings necessary per item.
+
+The general approach is to compute the cronbach's alpha per value in our pilot study data, where every one of the >500 participants completed our questions on 20 songs, using repeatedly randomly subsampled participant responses. 
+
+We confirm our estimate using response data from our main study, where we compute an ICC(2k) on repeatedly randomly subsampled participant responses, as well as the correlation with the subsample means and a canonical mean from all the ratings collected per song. 
 
 ```{r setup, include=FALSE}
 library('data.table') # data manipulation
@@ -14,6 +18,7 @@ library('ggplot2')    # visualization
 library('cowplot')    # combine plots
 library('psych')      # compute ICC2k
 library('tidyverse')  # data logistics
+library("ltm")        # dependency for custom alpha functions
 
 values <- c("POWER", "ACHIEVEMENT", "HEDONISM",  
             "STIMULATION", "SELF", "UNIVERSALISM", 
@@ -24,7 +29,7 @@ options(scipen=999)
 theme_set(theme_minimal())
 ```
 
-Import dataset in qualtrics format, and re-organize for further processing:
+Import pivoted pilot dataset:
 
 ```{r}
 path <- here("_data","_response_data", "pilot_clean.csv")
@@ -32,18 +37,21 @@ path <- here("_data","_response_data", "pilot_clean.csv")
 # read in qualtrics data file
 responses_dt <- fread(here(path))
 
-rm(data_file_path, file_name, data_file_reshape)
+rm(path)
 ```
 
-The general approach is to compute the cronbach's alpha per value. Participants responded on a scale of -100 to 100. Because 0 is a legitimate response, issues may arise with further computations. Thus, I add 101 to the scores. 
+Participants responded on a scale of -100 to 100. Because 0 is a legitimate response, issues may arise with further computations. Thus, I add 101 to the scores. 
 
 ```{r}
 responses_dt[,3:12] <- responses_dt[,3:12] + 101
+
+# remove unnecessary variable
+responses_dt$V1 <- NULL
 ```
 
 ```{r}
 # import custom alpha estimation function
-source(here("0_functions", "alpha_function_1.9.R"))
+source(here("_functions", "alpha_function_1.9.R"))
 ```
 
 ```{r}
@@ -88,6 +96,10 @@ for(i in 1:length(names)){
 }
 ```
 
+These are example plots for individual values. We set our alpha threshold as .8, shown as the red vertical line. The estimated distributions represent alpha values from repeated participant subsamples of different increments. We base our estimate of the necessary number of raters based on a visual inspection of the plots. 
+
+Based on these plots, we conservatively estimate 25 ratings per song on average. 
+
 ```{r}
 p1 <- list_of_plots[[1]]
 p2 <- list_of_plots[[9]]
@@ -95,10 +107,11 @@ p2 <- list_of_plots[[9]]
 plot_grid(p1, p2, labels = c("A", "B", label_size = 15))
 ```
 
+Import pivoted data from the main study:
+
 ```{r}
 # main study data
-response_df <- readRDS(file=here("VI_data_collection", "_data", "survey_response_data", "response_dfs.RDS"))[[1]]
-
+response_df <- readRDS(file=here("_data", "_response_data", "response_dfs.RDS"))[[1]]
 
 # subset
 response_df <- response_df %>% dplyr::select(
@@ -108,6 +121,8 @@ response_df <- response_df %>% dplyr::select(
   BENEVOLENCE, TRADITION, 
   CONFORMITY, SECURITY)
 ```
+
+Median number of ratings per song:
 
 ```{r}
   count_df <- response_df %>%
@@ -127,6 +142,8 @@ response_df <- response_df %>% dplyr::select(
   
   rm(count_df, count_mean, count_median)
 ```
+
+Custom function to estimate the ICC(2k) of random participant subsamples at similar increments as the pilot study:
 
 ```{r}
 make_icc_df <- function(df){
@@ -226,11 +243,15 @@ samples_of_ICC <- function(
 }
 ```
 
-```{r}
-list_of_icc_dfs <- lapply(values, samples_of_ICC)
-sampled_icc_df <- rbindlist(list_of_icc_dfs)
+Commented lines will take some time to run, thus I save the intermediary data:
 
-saveRDS(sampled_icc_df, file = here("VI_data_collection", "_data","intermediary_data", "sampled_icc_df.RDS"))
+```{r}
+#list_of_icc_dfs <- lapply(values, samples_of_ICC)
+#sampled_icc_df <- rbindlist(list_of_icc_dfs)
+
+#saveRDS(sampled_icc_df, file = here("_data","_intermediary_data", "sampled_icc_df.RDS"))
+
+sampled_icc_df <- readRDS(here("_data","_intermediary_data", "sampled_icc_df.RDS"))
 ```
 
 ```{r}
@@ -251,6 +272,7 @@ labels <- labels %>%
 sampled_icc_df$labels <- labels
 ```
 
+Plot distributions of ICCs:
 
 ```{r}
 sampled_icc_df %>%
@@ -266,6 +288,8 @@ sampled_icc_df %>%
   ylab("Density") +
   labs(color = "Rater n")
 ```
+
+Based on the correlations from the subsamples with the canonical mean of all ratings, we estimate that a less conservative estimate of number of raters would be 15 on average. 
 
 ```{r}
 sampled_icc_df %>%

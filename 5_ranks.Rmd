@@ -3,6 +3,8 @@ title: "computing ranks, and rank correlations"
 author: "Andrew M. Demetriou"
 ---
 
+AIM: This notebook computes ranks of values per song, for participant responses and for machine scores, and computes rank correlations and rank correlation plots. 
+
 ```{r setup, include=FALSE}
 library('here')            # file logistics
 library('data.table')      # data manipulation
@@ -20,9 +22,9 @@ values <- c("POWER", "ACHIEVEMENT", "HEDONISM",
 
 ```{r}
 # load data files
-machine_scores_df <- readRDS(here("VI_data_collection", "_data", "machine_response_data", "machines_as_fixed_df_4.RDS"))
+machine_scores_df <- readRDS(here("_data", "_machine_scores", "machines_as_fixed_df_4.RDS"))
 
-participant_confidence_df <- readRDS(here("VI_data_collection", "_data", "intermediary_data", "participant_confidence_weighted_dfs.RDS"))[[1]]
+participant_confidence_df <- readRDS(here("_data", "_intermediary_data", "participant_confidence_weighted_dfs.RDS"))[[1]]
 ```
 
 ```{r}
@@ -111,51 +113,3 @@ df %>%
   xlab("Kendall's Tau")
 
 ```
-
-```{r}
-median_df <- participant_disaggregated_df %>% group_by(item_ID) %>% 
-  summarize(POWER = abs(median(POWER)), 
-            ACHIEVEMENT = abs(median(ACHIEVEMENT)), 
-            HEDONISM = abs(median(HEDONISM)), 
-            STIMULATION = abs(median(STIMULATION)), 
-            SELF = abs(median(SELF)), 
-            UNIVERSALISM = abs(median(UNIVERSALISM)), 
-            BENEVOLENCE = abs(median(BENEVOLENCE)),
-            TRADITION = abs(median(TRADITION)),
-            CONFORMITY = abs(median(CONFORMITY)),
-            SECURITY = abs(median(SECURITY))
-            )
-
-t<- median_df %>% 
-  pivot_longer(cols = values, names_to = "value", values_to = "median") %>%
-  group_by(item_ID) %>%
-  summarize(max = max(median)) 
-
-arranged_t <- t %>% arrange(desc(max))
-high_median <- arranged_t[1:180, ] %>% select(item_ID)
-
-high_median_df <- merge(high_median, participant_confidence_df, by = "item_ID")
-```
-
-```{r}
-df <- merge(high_median_df, machines_as_subjects_df, by = c("item_ID", "value"))
-
-df$rank.x <- as.numeric(df$rank.x)
-df$rank.y <- as.numeric(df$rank.y)
-```
-
-```{r}
-df <- df %>% group_by(item_ID, model) %>%
-  summarize(kendall_t = cor(rank.x, rank.y, method = "kendall"))
-```
-```{r}
-df %>%
-  ggplot(aes(kendall_t, model, fill = model)) +
-    geom_density_ridges(alpha = 0.4) +
-  scale_fill_viridis_d() +
-  theme_minimal() +
-  theme(legend.position = "none") +
-  ylab("") +
-  xlab("Kendall's Tau")
-```
-

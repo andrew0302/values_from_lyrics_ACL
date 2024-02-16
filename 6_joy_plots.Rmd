@@ -1,0 +1,47 @@
+---
+title: "joy plotting"
+author: "andrew demetriou"
+---
+
+AIM: This notebook plots joyplots distributions of values ratings accross songs. 
+
+```{r setup, include=FALSE}
+library('here')       # file logistics
+library('data.table') # data manipulation
+library('tidyverse')       # data manipulation
+library('ggridges')        # joy plots
+#library('dplyr')      # data manipulation
+#library('tidyr')      # data manipulation
+#library('ggplot2')    # visualization
+#library('cowplot')    # multiple plots 
+#library('corrplot')   # correlation plots
+#library('corrr')      # correlation analysis
+#library('stringr')         # string manipulation
+
+values <- c("POWER", "ACHIEVEMENT", "HEDONISM",  
+            "STIMULATION", "SELF", "UNIVERSALISM", 
+            "BENEVOLENCE", "TRADITION",  
+            "CONFORMITY", "SECURITY")
+
+options(scipen=999)
+theme_set(theme_minimal())
+```
+
+```{r}
+# load dataframe
+
+# confidence-weighted means
+participant_confidence_df <- readRDS(here("_data", "_intermediary_data", "participant_confidence_weighted_dfs.RDS"))[[1]] %>% select(-confidence, -weight)
+```
+
+```{r}
+participant_confidence_df %>% 
+  pivot_longer(cols = POWER:SECURITY, values_to = "estimate", names_to = "value") %>%
+  ggplot(aes(y = value, x=estimate, fill = value))+
+  geom_density_ridges(alpha = 0.4) +
+  scale_fill_viridis_d() +
+  theme_minimal() +
+  theme(legend.position = "none") +
+  xlab("Confidence-weighted Mean")
+```
+

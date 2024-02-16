@@ -3,6 +3,10 @@ title: "MDS plotting"
 author: "andrew demetriou"
 ---
 
+AIM:
+
+The aim of this notebook is to produce multi-dimensional scaling plots for analysis. 
+
 ```{r setup, include=FALSE}
 library('here')       # file logistics
 library('data.table') # data manipulation
@@ -22,21 +26,24 @@ options(scipen=999)
 theme_set(theme_minimal())
 ```
 
+Participant responses in our main study were aggregated using multiple methods. 
+We report results on confidence-weighted means in our manuscript, but we include dataframes from the other methods in this notebook as well. 
+
 ```{r}
-# load dataframes
+# load dataframe
 
 # means
-participant_mean_df<-readRDS(here("VI_data_collection", "_data", "intermediary_data", "participant_mean_dfs.RDS"))[[1]] %>% select(-confidence)
+participant_mean_df<-readRDS(here("_data", "_intermediary_data", "participant_mean_dfs.RDS"))[[1]] %>% select(-confidence)
 
 # confidence-weighted means
-participant_confidence_df <- readRDS(here("VI_data_collection", "_data", "intermediary_data", "participant_confidence_weighted_dfs.RDS"))[[1]] %>% select(-confidence, -weight)
+participant_confidence_df <- readRDS(here("_data", "_intermediary_data", "participant_confidence_weighted_dfs.RDS"))[[1]] %>% select(-confidence, -weight)
 
 # lme4 item intercepts
-participant_intercept_df <- readRDS(here("VI_data_collection", "_data","intermediary_data", "participant_lme4_item_intercept_dfs.RDS"))[[1]] %>% select(-mean, -dataset) %>%
+participant_intercept_df <- readRDS(here("_data", "_intermediary_data", "participant_lme4_item_intercept_dfs.RDS"))[[1]] %>% select(-mean, -dataset) %>%
   pivot_wider(values_from = intercept, names_from = value)
 
 # fourth export of machine scores
-machine_scores_df <- readRDS(here("VI_data_collection", "_data", "machine_response_data", "machines_as_fixed_df_4.RDS")) 
+machine_scores_df <- readRDS(here("_data", "_machine_scores", "machines_as_fixed_df_4.RDS")) 
 
 # correlation matrix from Schwartz, 2001, Table 2 (upper triangle):
 og_correlation_matrix <- rbind(
@@ -57,8 +64,6 @@ colnames(og_correlation_matrix) <- c("power", "security", "conformity",
                                   "tradition", "benevolence", "universalism", 
                                   "self", "stimulation", 
                                   "hedonism", "achievement") %>% toupper() 
-# order columns
-og_correlation_matrix %>% select(all_of(values))
 ```
 
 ```{r}
@@ -106,6 +111,7 @@ mds_plot <- function(correlation_matrix, title) {
 ```
 
 ```{r}
+#compute plots
 p1 <- participant_confidence_df %>% select(-item_ID) %>% cor() %>% mds_plot(., "Confidence-weighted Means")
 p2 <- participant_mean_df %>% select(-item_ID) %>% cor() %>% mds_plot(., "mean")
 p3 <- participant_intercept_df %>% select(-item_ID) %>% cor() %>% mds_plot(., "intercept")
@@ -113,56 +119,6 @@ p4 <- og_correlation_matrix %>% mds_plot(., "Schwartz, 2001")
 ```
 
 ```{r}
-#plot_grid(p1, p2, p3, p4)
 plot_grid(p4, p1)
-```
-
-```{r}
-machine_cor_matrix <- function(setup, df=machine_scores_df){
-  #df <- machine_scores_df
-  df <- df %>% select(contains(setup)) %>%
-    cor() %>% as.data.frame()
-  colnames(df) <- gsub(paste0("_", setup), "", colnames(df))
-  rownames(df) <- gsub(paste0("_", setup), "", rownames(df))
-  return(df)
-}
-```
-
-```{r}
-grid_1 <- c("google", "glove", "far", "cv")
-grid_2 <- c("idf", "uni")
-
-grid <- expand.grid(grid_1, grid_2)
-colnames(grid) <- c("machines", "weight")
-
-setups <- paste0(grid$machines, "_", grid$weight) %>% as.list()
-
-rm(grid_1, grid_2, grid)
-```
-
-```{r}
-machine_cor_list <- lapply(setups, machine_cor_matrix)
-names(machine_cor_list) <- setups
-```
-
-```{r}
-p5 <- mds_plot(machine_cor_list[[1]], names(machine_cor_list[1]))
-p6 <- mds_plot(machine_cor_list[[2]], names(machine_cor_list[2]))
-p7 <- mds_plot(machine_cor_list[[5]], names(machine_cor_list[5]))
-p8 <- mds_plot(machine_cor_list[[6]], names(machine_cor_list[6]))
-
-plot_grid(p5, p7)
-#plot_grid(p6, p8)
-```
-
-```{r}
-p1 <- participant_confidence_df %>% select(-item_ID) %>% cor() %>% mds_plot(., "Participant Confidence-weighted Means")
-p5 <- mds_plot(machine_cor_list[[1]], "word2vec Google News idf-weighted")
-p4 <- og_correlation_matrix %>% mds_plot(., "Schwartz, 2001")
-```
-
-
-```{r fig.align="center", echo=FALSE, fig.width=12, fig.height=4}
-plot_grid(p4, p1, p5, ncol = 3)
 ```
 

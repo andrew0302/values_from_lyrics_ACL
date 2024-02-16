@@ -4,7 +4,7 @@ title: "lyric preferences"
 
 # AIM: 
 
-To what degree does a US sample prefer songs with lyrics?
+To what degree do US samples prefer songs with lyrics?
 
 ```{r setup, include=FALSE}
 library('data.table') # data manipulation
@@ -28,6 +28,7 @@ responses_dt <- fread(here(data_file_path, "pilot.csv")) %>% select(-V1)
 rm(data_file_path)
 ```
 
+Format pilot data:
 
 ```{r}
 # names of lyric preferences columns for subsetting
@@ -71,6 +72,8 @@ pilot_subjectivity <- responses_dt[, "subjective"]
 rm(responses_dt, lyric_column_names, to_numbers)
 ```
 
+Proportions of responses to questions about lyric preferences:
+
 ```{r}
 pilot_prop_table_list <-sapply(pilot_preferences_dt, function(x){ x %>% table() %>% prop.table()})
 
@@ -108,6 +111,7 @@ L_10_prop_table[response >= 80]$props |> sum()
 # 10.8%
 L_10_prop_table[response >= 100]$props |> sum()
 ```
+
 
 
 ```{r}
