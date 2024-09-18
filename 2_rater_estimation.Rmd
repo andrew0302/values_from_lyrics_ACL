@@ -246,12 +246,12 @@ samples_of_ICC <- function(
 Commented lines will take some time to run, thus I save the intermediary data:
 
 ```{r}
-#list_of_icc_dfs <- lapply(values, samples_of_ICC)
-#sampled_icc_df <- rbindlist(list_of_icc_dfs)
+list_of_icc_dfs <- lapply(values, samples_of_ICC)
+sampled_icc_df <- rbindlist(list_of_icc_dfs)
 
 #saveRDS(sampled_icc_df, file = here("_data","_intermediary_data", "sampled_icc_df.RDS"))
 
-sampled_icc_df <- readRDS(here("_data","_intermediary_data", "sampled_icc_df.RDS"))
+#sampled_icc_df <- readRDS(here("_data","_intermediary_data", "sampled_icc_df.RDS"))
 ```
 
 ```{r}
